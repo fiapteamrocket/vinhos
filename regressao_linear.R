@@ -4,6 +4,9 @@ rm(list=ls(all=TRUE))
 # mostrar até 2 casas decimais
 options("scipen" = 2)
 
+#set seed
+set.seed(1)
+
 # Ler arquivo csv
 
 vinhos = read.csv2("C:/Temp/BaseWine_Red_e_White.csv", row.names=1, sep=";")
@@ -15,14 +18,32 @@ attach(vinhos)
 #Verificando o formato das variáveis
 str(vinhos)
 vinhos$Vinho <- as.numeric(vinhos$Vinho)
+
+vinhos$cor <- ifelse(vinhos$Vinho == "WHITE", "blue", "red")
+
 vinhos$quality <- as.numeric(vinhos$quality)
 str(vinhos)
 
 
 summary(vinhos)
 
+#Falar sobre a quantidade de tipo de vinho
+#Falar sobre a media da qualidade
+
 
 #Histogramas
+hist(vinhos$quality)
+
+#Falar que nao eh normal.
+library(ggplot2)
+install.packages("GGally")
+library(GGally)
+
+#TODO Soh comparar a qualidade entre os tipos de vinho
+qplot(quality, data = vinhos, fill = cor, binwidth = 1) +
+  scale_x_continuous(breaks = seq(3,10,1), lim = c(3,10)) +
+  scale_y_sqrt()
+
 hist(vinhos$fixedacidity)
 hist(vinhos$volatileacidity)
 hist(vinhos$citricacid)
@@ -55,6 +76,9 @@ boxplot(vinhos$alcohol)
 vinhos$Vinho <- as.numeric(vinhos$Vinho)
 str(vinhos)
 
+#Remove a coluna de cor
+vinhos$cor = NULL
+
 #Correlacao
 matcor = cor(vinhos)
 
@@ -66,6 +90,12 @@ corrgram(matcor, type = "cor", lower.panel = panel.shade, upper.panel = panel.pi
 install.packages("corrplot")
 library(corrplot)
 
+#Quanto mais chlorides menor a qualidade
+#Quanto mais vinhos$freesulfurdioxide maior o vinhos$totalsulfurdioxide
+#Quanto menor a desinty menor a quantidade de alcool
+#QUanto menor a volatieacidity menor a qualidade
+#Quanto maior a acides fixa maior a densidade
+
 corrplot::corrplot(matcor, method="circle", order="hclust")
 
 
@@ -74,58 +104,20 @@ corrplot::corrplot(matcor, method="circle", order="hclust")
 #Fazer grafico de dispersao para todas as colunas
 
 #Gráfico de dispersao para a associação entre área m2 e valor
-plot (x = vinhos$fixedacidity, y = vinhos$quality,
-      main = "Gráfico de dispersão",
-      xlab = "fixedacidity",
-      ylab = "quality")
-
 install.packages("plotly")
 library(plotly)
 plot_ly ( x=vinhos$fixedacidity, y=vinhos$quality  , type="scatter")
-plot_ly ( x=vinhos$density, y=vinhos$quality  , type="bar")
- 
+plot_ly ( x=vinhos$volatileacidity, y=vinhos$quality  , type="scatter")
+plot_ly ( x=vinhos$citricacid, y=vinhos$quality  , type="scatter")
+plot_ly ( x=vinhos$residualsugar, y=vinhos$quality  , type="scatter")
+plot_ly ( x=vinhos$chlorides, y=vinhos$quality  , type="scatter")
+plot_ly ( x=vinhos$freesulfurdioxide, y=vinhos$quality  , type="scatter")
+plot_ly ( x=vinhos$totalsulfurdioxide, y=vinhos$quality  , type="scatter")
+plot_ly ( x=vinhos$density, y=vinhos$quality  , type="scatter")
+plot_ly ( x=vinhos$pH, y=vinhos$quality  , type="scatter")
+plot_ly ( x=vinhos$sulphates, y=vinhos$quality  , type="scatter")
+plot_ly ( x=vinhos$alcohol, y=vinhos$quality  , type="scatter")
 
-#Gráfico de dispersao com o ggplot2
-install.packages("ggplot2")
-
-library(ggplot2)
-ggplot (data= vinhos, aes(x=vinhos$chlorides, y=vinhos$quality )) + 
-  geom_point(size=0.4) +
-  geom_smooth(method="lm", color ="red", linetype=2) +
-  labs(title = "Gráfico de dispersãoo, Valor e Área", x="Área", y="Valor")
-
-
-#Funcao da professora
-panel.cor <- function(x, y, digits=2, prefix ="", cex.cor,
-                      ...)  {
-  usr <- par("usr")
-  on.exit(par(usr))
-  par(usr = c(0, 1, 0, 1))
-  r <- cor(x, y , use = "pairwise.complete.obs")
-  txt <- format(c(r, 0.123456789), digits = digits) [1]
-  txt <- paste(prefix, txt, sep = "")
-  if (missing(cex.cor))
-    cex <- 0.8/strwidth(txt)
-  # abs(r) é para que na saída as correlações ficam proporcionais
-  text(0.5, 0.5, txt, cex = cex * abs(r))
-}
-#Outra forma de ver correlacao
-pairs(vinhos, lower.panel=panel.smooth, upper.panel=panel.cor)
-str(vinhos)
-
-attach(vinhos)
-
-#PCA
-# padr_vinhos <- scale(vinhos)
-# 
-# fix(padr_vinhos)
-# summary(padr_vinhos)
-# 
-# acpcor <- prcomp(padr_vinhos, scale = TRUE) 
-# summary(acpcor)
-# 
-# plot(1:ncol(padr_vinhos), acpcor$sdev^2, type = "b", xlab = "Componente",
-#      ylab = "Variância", pch = 20, cex.axis = 0.8, cex.lab = 0.8)
 
 #Funcao da professora para verificar erro quadratico medio
 measures <- function(x) {
@@ -154,6 +146,8 @@ modelo1 <- lm(quality ~ fixedacidity+volatileacidity+citricacid+residualsugar+
 
 summary(modelo1)
 
+#PValue ta bom!
+
 # selecionando variáveis por método automático
 
 stepwise<-step(modelo1,direction="both")
@@ -176,9 +170,11 @@ lower <- Val_pred[,2] # limite inferior
 upper <- Val_pred[,3] # limite superior
 
 
+#Pega a media da qualidade menos o fit elevado ao quadrado
 mse <- mean((vinhos$quality - fit)^2)
 sqrt(mse)
 
+#Pega o erro usando a media
 erro_usando_media <- mean((vinhos$quality - mean(vinhos$quality))^2)
 sqrt(erro_usando_media)
 
@@ -214,7 +210,7 @@ library(rpart.plot)
 modelo_Valor_tree = rpart (quality ~ alcohol+chlorides+citricacid+density+fixedacidity+
                               freesulfurdioxide+pH+residualsugar+sulphates+
                               totalsulfurdioxide+Vinho+volatileacidity, data=vinhos, 
-                            cp = 0.001,minsplit = 15,maxdepth=30)
+                            cp = 0.001,minsplit = 15,maxdepth=50)
 
 # Faz o Gráfico
 rpart.plot(modelo_Valor_tree, type=4, extra=1, under=FALSE, clip.right.labs=TRUE,
