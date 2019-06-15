@@ -1,7 +1,7 @@
-# limpar memória do R
+# limpar memÃ³ria do R
 rm(list=ls(all=TRUE))
 
-# mostrar até 2 casas decimais
+# mostrar atÃ© 2 casas decimais
 options("scipen" = 2)
 
 #set seed
@@ -36,7 +36,7 @@ fix(padr_vinho)
 
 summary(padr_vinho)
 
-#método hierarquico
+#mÃ©todo hierarquico
 
 hier_cluster<-hclust(dist(padr_vinho),method='ward.D2')
 d <- dist(padr_vinho, method = "euclidean") # distance matrix
@@ -50,11 +50,11 @@ groups <- cutree(hier_cluster, k=6) # cut tree into 5 clusters
 # draw dendogram with red borders around the 5 clusters
 rect.hclust(hier_cluster, k=6, border="blue") 
 
-# Outros métodos que podem ser usados são: "ward", "single", "complete", "average", "mcquitty", "median" ou "centroid".
-# A definição de qual método usar varia com o objetivo do estudo e com o tipo de matriz de distância usada.
+# Outros mÃ©todos que podem ser usados sÃ£o: "ward", "single", "complete", "average", "mcquitty", "median" ou "centroid".
+# A definiÃ§Ã£o de qual mÃ©todo usar varia com o objetivo do estudo e com o tipo de matriz de distÃ¢ncia usada.
 
 
-#método não hierarquico
+#mÃ©todo nÃ£o hierarquico
 
 # Determine number of clusters - Elbow method
 wss <- (nrow(padr_vinho )-1)*sum(apply(padr_vinho ,2,var))
@@ -64,7 +64,7 @@ plot(1:15, wss, type="b", xlab="Number of Clusters",
      ylab="Within groups sum of squares") 
 
 
-# utilizando uma forma gráfica
+# utilizando uma forma grÃ¡fica
 install.packages("tclust")
 library(tclust)
 clus_teste <- tkmeans(padr_vinho , k = 5, alpha = 0.01)
@@ -80,11 +80,11 @@ output_cluster
 segmento<-output_cluster$cluster
 table (segmento)
 
-# quais características  de cada cluster
+# quais caracterÃ­sticas  de cada cluster
 centros<-output_cluster$centers
 centros
 
-# quantas rodadas até chegar nos clusters
+# quantas rodadas atÃ© chegar nos clusters
 Qte_iter<-output_cluster$iter
 Qte_iter
 
@@ -94,7 +94,7 @@ aggregate(vinhos,by=list(segmento),FUN=mean)
 # Existe um grupo de vinhos vermelhos doces
 
 
-# Mostrando Resultados em gráficos
+# Mostrando Resultados em grÃ¡ficos
 
 # Cluster Plot against 1st 2 principal components
 # vary parameters for most readable graph
@@ -115,8 +115,7 @@ matriz<-cbind(vinhos,padr_vinho,segmento)
 fix(matriz)
 
 # append cluster assignment
-#no arquivo que eu tenho essa variavel arq01 nao existe alem daqui
-matriz<- data.frame(arq01,padr_vinho, segmento) 
+matriz<- data.frame(vinhos,padr_vinho, segmento) 
 fix(matriz)
 
 
@@ -125,7 +124,7 @@ acpcor <- prcomp(padr_vinho, scale = TRUE)
 summary(acpcor)
 
 plot(1:ncol(padr_vinho), acpcor$sdev^2, type = "b", xlab = "Componente",
-     ylab = "Variância", pch = 20, cex.axis = 0.8, cex.lab = 0.8)
+     ylab = "VariÃ¢ncia", pch = 20, cex.axis = 0.8, cex.lab = 0.8)
 
 sum(acpcor$sdev^2)
 
@@ -153,9 +152,9 @@ vinhos_cpa <-cbind(escore1,escore2)
 
 
 
-# usar os escores em uma segmentação, por exemplo.
+# usar os escores em uma segmentaÃ§Ã£o, por exemplo.
 
-#método hierarquico
+#mÃ©todo hierarquico
 
 hier_cluster<-hclust(dist(vinhos_cpa),method='ward.D2')
 d <- dist(vinhos_cpa, method = "euclidean") # distance matrix
@@ -165,13 +164,13 @@ groups <- cutree(hier_cluster, k=5) # cut tree into 5 clusters
 # draw dendogram with red borders around the 5 clusters
 rect.hclust(hier_cluster, k=5, border="blue") 
 
-# Outros métodos que podem ser usados são: "ward", "single", "complete", "average", "mcquitty", "median" ou "centroid".
-# A definição de qual método usar varia com o objetivo do estudo e com o tipo de matriz de distância usada.
+# Outros mÃ©todos que podem ser usados sÃ£o: "ward", "single", "complete", "average", "mcquitty", "median" ou "centroid".
+# A definiÃ§Ã£o de qual mÃ©todo usar varia com o objetivo do estudo e com o tipo de matriz de distÃ¢ncia usada.
 
 
 
 
-#método não hierarquico
+#mÃ©todo nÃ£o hierarquico
 
 # Determine number of clusters
 wss <- (nrow(vinhos_cpa )-1)*sum(apply(vinhos_cpa ,2,var))
@@ -210,7 +209,7 @@ aggregate(padr_vinho,by=list(clus_vinhos),FUN=mean)
 aggregate(matriz_cpa,by=list(clus_vinhos),FUN=mean)
 
 
-# Mostrando Resultados em gráficos
+# Mostrando Resultados em grÃ¡ficos
 
 # Cluster Plot against 1st 2 principal components
 # vary parameters for most readable graph'
