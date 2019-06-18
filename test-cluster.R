@@ -1,5 +1,5 @@
 
-vinhos = read.csv2("/Users/letticianicoli/Desktop/Projects/Fiap/vinhos/BaseWine_Red_e_White.csv", row.names=1, sep=";")
+vinhos = read.csv2("C:/Temp/BaseWine_Red_e_White.csv", row.names=1, sep=";")
 
 summary(vinhos)
 str(vinhos)
@@ -41,6 +41,7 @@ head(wineData_norm)
 
 #Ignora tipo do vinho
 vinhos_noColor <- vinhos[1:12]
+
 #Pode-se utilizar o scale para normalizacao tambem
 wineData_scaled <- scale(vinhos_noColor)
 head(wineData_scaled)
