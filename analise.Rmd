@@ -25,28 +25,15 @@ library(scorecard)
 library(cluster)
 library(tclust)
 library(outliers)
+library(kableExtra)
 red_color = "#E98383"
 white_color = "#83E9D2"
 cores = c(red_color, white_color)
 ```
 
 ```{r input, include=FALSE}
-Vinhos <- read.csv2("/Users/letticianicoli/Desktop/Projects/Fiap/vinhos/BaseWine_Red_e_White.csv", row.names=1)
+Vinhos <- read.csv2("G:/fiap/vinhos/BaseWine_Red_e_White.csv", row.names=1)
 
-
-attr(Vinhos$fixedacidity, 'label') <- 'acidez fixa'
-attr(Vinhos$volatileacidity, 'label') <- 'acidez volatil'
-attr(Vinhos$citricacid, 'label') <- 'acido citrico'
-attr(Vinhos$residualsugar, 'label') <- 'acucar residual'
-attr(Vinhos$chlorides, 'label') <- 'cloretos'
-attr(Vinhos$freesulfurdioxide, 'label') <- 'dioxido de enxofre livre'
-attr(Vinhos$totalsulfurdioxide, 'label') <- 'dioxido de enxofre total'
-attr(Vinhos$density, 'label') <- 'densidade'
-attr(Vinhos$pH, 'label') <- 'pH'
-attr(Vinhos$sulphates, 'label') <- 'sulfatos'
-attr(Vinhos$alcohol, 'label') <- 'alcool'
-attr(Vinhos$quality, 'label') <- 'qualidade'
-attr(Vinhos$Vinho, 'label') <- 'vinho'
 
 attach(Vinhos)
 ```
@@ -55,7 +42,8 @@ attach(Vinhos)
 
 ### Amostra do dataset
 ```{r echo=FALSE}
-head(Vinhos)
+kable(head(Vinhos)) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 ### Verifica se há preditores com variância próxima de zero
@@ -95,7 +83,7 @@ Apenas vinhos brancos possuem a nota máxima em relação a qualidade.
 ###  Correlação
 Para realizar a correlação transformamos o campo `Vinho` (fator) para tipo numérico. Além de *normalizar* os dados para evitar algum tipo de distorção.
 
-```{r}
+```{r echo=TRUE}
 Vinhos$Vinho <- as.numeric(Vinhos$Vinho)
 norm_vinhos <- scale(Vinhos)
 ```
@@ -114,20 +102,17 @@ ggcorrplot(matcor, hc.order = TRUE,
            ggtheme=theme_dark)
 ```
 
-```{r}
+```{r echo=FALSE}
 corrgram(matcor, type = "cor", lower.panel = panel.shade, upper.panel = panel.pie)
 ```
 
 
-Com o gráfico de correlação descobrimos que:
-(Precisamos revisar esse ponto)
-***
-- Quanto mais `cloreto` menor a qualidade
-- Quanto mais `freesulfurdioxide` maior o `totalsulfurdioxide`
-- Quanto menor a `desinty` menor a quantidade de `alcool`
-- QUanto menor a `volatieacidity` menor a `quality`
-- Quanto maior a `fixedacidy` a maior a `density`
-***
+Com o gráfico de correlação podemos observar que:
+
+- O `alcool` tem uma correlação negativa alta com qualidade `desinty`
+- O `freesulfurdioxide` tem uma correlação possitiva alta com`totalsulfurdioxide`
+
+As outras correlações não são significativas no dataset
 
 
 ###  Ánalise de outliers
@@ -163,7 +148,7 @@ boxplot(quality ~ Vinho, main='quality', col=cores)
 ```
 
 Com os gráficos acima pode-se observar que todas as variáveis possuem candidatos a outliers.
-No dataset existem variáveis como `residualsugar` que possui o valor máximo muito acima do terceiro quartil, isso pode gerar distorções nos algoritmos que será executado a seguir. Alem disso há uma concentração de outliears nessas variáriveis, o que traz a necessidade de remove-los.
+No dataset existem variáveis como `residualsugar` que possui o valor máximo muito acima do terceiro quartil, isso pode gerar distorções nos algoritmos que será executado a seguir. Alem disso há uma concentração de outliears nessas variáriveis, o que traz a necessidade de remove-los para evitar distorção nos passos seguintes
 
 ```{r}
 VinhosOut = subset(Vinhos, subset = !(Vinhos$citricacid %in% boxplot.stats(Vinhos$citricacid)$out))
@@ -233,9 +218,12 @@ summary(modeloSemCitricidade)
 ```
 O R-squared é de mais ou menos 30, o que significa que a regressão linear não descreve o modelo com tanta precisão.
 
-```{r}
-pred1 <- predict(modeloSemCitricidade, newdata = test)
-RMSE(pred = pred1, obs = test$quality)
+Abaixo segue o modelo para base teste
+
+```{r echo=TRUE}
+modeloTestSemCitricidade <- lm(test$quality ~ test$fixedacidity + test$volatileacidity + test$residualsugar + test$freesulfurdioxide + test$density + test$pH + test$sulphates + test$alcohol)
+
+summary(modeloTestSemCitricidade) 
 ```
 
 O modelo criado através da técnica de regressão linear não descreve muito bem a nota de qualidade dos vinhos, com uma acertividade de aproximadamente 30%. Não será necessário fazer o modelo de predição, devido ao baixo índice de acertividade.
@@ -244,42 +232,17 @@ O modelo criado através da técnica de regressão linear não descreve muito be
 
 ```{r echo=FALSE}
 par(mfrow=c(2,2))
-plot(stepwise)
+plot(modeloTestSemCitricidade)
 ```
 
 Executando o teste de shapiro no modelo
 
 ```{r}
-shapiro.test(residuals(stepwise))
+shapiro.test(residuals(modeloTestSemCitricidade))
 ```
 Como o p-value ficou menor que 5 pode-se dizer que temos um modelo de regressão com pouca assertividade.
 
-### Testando o modelo
-Executa-se a predição do modelo.
-
-Verificando o erro utilizando a média.
-
-```{r}
-Val_pred <- predict(stepwise, train, interval = "conf", level = 0.95) 
-
-# intervalo de confianca - grafico para media
-fit <- Val_pred[,1] # valores preditos
-lower <- Val_pred[,2] # limite inferior
-upper <- Val_pred[,3] # limite superior
-
-erro_usando_media <- mean((train$quality - mean(train$quality))^2)
-sqrt(1-erro_usando_media)
-```
-
-Verificando o erro utilizando media da `qualidade` menos o fit elevado ao quadrado
-```{r}
-
-mse <- mean((train$quality - fit)^2)
-sqrt(mse)
-
-```
-
-Foi observado uma leve melhora no modelo em comparacão com a média.
+Isso corrobora com o valor d R-Quadrodo demonstrando que modelo não é assertivo.
 
 ### Arvore de Regressão
 
@@ -293,13 +256,13 @@ attach(train)
 ```
 
 
-```{r}
+```{r echo=TRUE}
 arvore_regressao = rpart (quality ~ fixedacidity + volatileacidity + citricacid + residualsugar + chlorides + freesulfurdioxide + totalsulfurdioxide + density + pH + sulphates + alcohol,
                       data=train, 
                       cp = 0.007,minsplit = 15, maxdepth=30)
 ```
 
-```{r}
+```{r echo=TRUE}
 rpart.plot(arvore_regressao, type=4, extra=1, under=FALSE, clip.right.labs=TRUE,
            fallen.leaves=FALSE,   digits=2, varlen=-10, faclen=20,
            cex=0.4, tweak=1.7,
@@ -321,7 +284,7 @@ sqrt(mse_tree)
 Erro utilizando média
 
 ```{r}
-erro_usando_media = mean((quality - mean(quality))^2)
+erro_usando_media = mean((train$quality - mean(train$quality))^2)
 sqrt(erro_usando_media)
 ```
 
