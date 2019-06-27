@@ -1,9 +1,13 @@
 ---
 title: "Vinhos"
-author: "FIAP-06IA - Carlos A. Martinelli, Jônatas Bertolazzo, Letticia Nicoli, Renato Ramos"
+author: "FIAP-06IA - Carlos Martinelli, Jônatas Bertolazzo, Letticia Nicoli, Renato Ramos"
 date: "6/18/2019"
 output: html_document
 ---
+
+## Dataset: Qualidade do Vinho 
+Dataset realicionado com amostras de vinhos tintos e brancos do norte de Portugal. 
+O objetivo é modelar a qualidade do vinho com base em testes físico-químicos.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -20,13 +24,14 @@ library(ggcorrplot)
 library(scorecard)
 library(cluster)
 library(tclust)
+library(outliers)
 red_color = "#E98383"
 white_color = "#83E9D2"
 cores = c(red_color, white_color)
 ```
 
 ```{r input, include=FALSE}
-Vinhos <- read.csv2("C:\\Temp\\BaseWine_Red_e_White.csv", row.names=1)
+Vinhos <- read.csv2("/Users/letticianicoli/Desktop/Projects/Fiap/vinhos/BaseWine_Red_e_White.csv", row.names=1)
 
 
 attr(Vinhos$fixedacidity, 'label') <- 'acidez fixa'
@@ -48,22 +53,22 @@ attach(Vinhos)
 
 # Ánalise Exploratória
 
-### Amostra da base
+### Amostra do dataset
 ```{r echo=FALSE}
 head(Vinhos)
 ```
 
-### Verifica se existe coluna com zero variância 
+### Verifica se há preditores com variância próxima de zero
 ```{r}
 nearZeroVar(Vinhos)
 ```
-O dataset não possui nenhum coluna com zero variância.
+Não diagnosticamos preditores que possuam um valor exclusivo (ou seja, preditores de variação zero) ou preditores que possuam poucos valores exclusivos em relação ao número de amostras.
 
-### Verifica valores nulos
+### Verifica se há valores ausentes (NAs)
 ```{r}
 sapply(Vinhos, function(x)all(is.na(x)))
 ```
-O dataset não possui valores nulos.
+Observamos que não há nenhum valor ausente/faltante nesse dataset. Dessa forma, eliminamos a necessidade de tratar esses valores.
 
 ###  Resumo do dataset
 ```{r}
@@ -72,16 +77,58 @@ str(Vinhos)
 O dataset possui 6497 observações de 13 variáveis.
 Dentre essas observações a maioria são de vinhos brancos, conforme gráfico abaixo:
 
+```{r}
+summary(Vinhos)
+```
+Observamos que as variáveis `residualsugar`, `freesulfurdioxide` e `totalsulfurdioxide` possuem valores muito distantes entre mínimo e máximo. Isso pode indicar outliers e/ou desequilíbrio entre a quantidade de vinhos tintos e brancos, o que pode interferir nos resultados de classificação.
+
 ```{r echo=FALSE}
 barplot(table(Vinho), col=c(red_color, white_color))
 ```
 
-E tambem é possivel estimar que os vinhos tintos possuem notas melhores que os tintos
-
 ```{r echo=FALSE}
 table(Vinho, quality)
-
 ```
+Outro aspecto relevante é que a quantidade de vinhos brancos é maior do que vinhos tintos.
+Apenas vinhos brancos possuem a nota máxima em relação a qualidade.
+
+###  Correlação
+Para realizar a correlação transformamos o campo `Vinho` (fator) para tipo numérico. Além de *normalizar* os dados para evitar algum tipo de distorção.
+
+```{r}
+Vinhos$Vinho <- as.numeric(Vinhos$Vinho)
+norm_vinhos <- scale(Vinhos)
+```
+
+Todos os Vinhos
+```{r echo=FALSE}
+
+matcor = cor(norm_vinhos)
+ggcorrplot(matcor, hc.order = TRUE, 
+           type = "lower", 
+           lab = TRUE, 
+           lab_size = 3, 
+           method="circle", 
+           colors = c("tomato2", "white", "springgreen3"), 
+           title="Correlação dos Vinhos", 
+           ggtheme=theme_dark)
+```
+
+```{r}
+corrgram(matcor, type = "cor", lower.panel = panel.shade, upper.panel = panel.pie)
+```
+
+
+Com o gráfico de correlação descobrimos que:
+(Precisamos revisar esse ponto)
+***
+- Quanto mais `cloreto` menor a qualidade
+- Quanto mais `freesulfurdioxide` maior o `totalsulfurdioxide`
+- Quanto menor a `desinty` menor a quantidade de `alcool`
+- QUanto menor a `volatieacidity` menor a `quality`
+- Quanto maior a `fixedacidy` a maior a `density`
+***
+
 
 ###  Ánalise de outliers
 
@@ -115,7 +162,7 @@ boxplot(alcohol ~ Vinho, main='alcohol',col=cores)
 boxplot(quality ~ Vinho, main='quality', col=cores)
 ```
 
-Com os gráficos acima pode-se observar que todas as variáveis possuem candidatos a outliears.
+Com os gráficos acima pode-se observar que todas as variáveis possuem candidatos a outliers.
 No dataset existem variáveis como `residualsugar` que possui o valor máximo muito acima do terceiro quartil, isso pode gerar distorções nos algoritmos que será executado a seguir. Alem disso há uma concentração de outliears nessas variáriveis, o que traz a necessidade de remove-los.
 
 ```{r}
@@ -126,44 +173,9 @@ VinhosOut = subset(VinhosOut, subset = !(VinhosOut$totalsulfurdioxide %in% boxpl
 
 ```
 
-###  Correlação
-Para fazer a correlação foi transformado o campo `Vinho` que era fator em um campo numérico. E tambem para evitar algum tipo de distorção os dados foram normalizados.
-
-```{r}
-VinhosOut$Vinho <- as.numeric(VinhosOut$Vinho)
-norm_vinhos <- scale(VinhosOut)
-```
-
-
-```{r echo=FALSE}
-
-matcor = cor(norm_vinhos)
-#corrgram(matcor, type = "cor", lower.panel = panel.shade, upper.panel = panel.pie)
-ggcorrplot(matcor, hc.order = TRUE, 
-           type = "lower", 
-           lab = TRUE, 
-           lab_size = 3, 
-           method="circle", 
-           colors = c("tomato2", "white", "springgreen3"), 
-           title="Correlogram of Wine Data", 
-           ggtheme=theme_dark)
-```
-
-Com o gráfico de correlação pode-se observar que:
-
-- Quanto mais `chlorides` menor a qualidade
-- Quanto mais `freesulfurdioxide` maior o `totalsulfurdioxide`
-- Quanto menor a `desinty` menor a quantidade de `alcool`
-- QUanto menor a `volatieacidity` menor a `quality`
-- Quanto maior a `fixedacidy` a maior a `density`
-
-
 ## Explicando a variável quality
 
-### Regressão Linear
-Modelos de regressão linear consite em encontrar uma equação para se estimar o valor de `y`, dados os valroes de outras variáveirs `x`
-
-O dataset foi divido em duas partes para treinamento e test.
+### Preparação para separação de dados: treinamento e teste
 
 ```{r}
 norm_vinhos = data.frame(norm_vinhos)
@@ -172,8 +184,20 @@ train = dt_list$train
 test = dt_list$test
 ```
 
+Validando a consistência de qualidade entre as bases de treino e teste
+```{r}
+prop.table(table(train$quality))
+```
 
-No primeiro modelo foi colocado todas as varáveis
+```{r}
+prop.table(table(test$quality))
+```
+
+As proporções estão, consideravelemente, bem distribuídas entre a qualidade. Dessa forma, conseguimos realizar um bom treinamento para o modelo.
+
+### Regressão Linear
+
+No primeiro modelo mantemos todas as varáveis:
 
 ```{r}
 
@@ -187,20 +211,34 @@ summary(modelo1)
 ```
 
 Nesse primeiro modelo a variável `citracid` não possui muita relevância pois o seu p-value está próximo a 1.
-Para ter certeza disso foi utilizado o metodo stepwise para se identificar quais são variáveis relavantes ao modelo.
+Para ter certeza sobre essa informação, utilizamos o método `stepwise` para identificar quais são as variáveis relavantes para o modelo.
 
 ```{r}
 stepwise<-step(modelo1, direction="both")
 summary(stepwise)
 
 ```
+Como esperado, o método removeu a `citracid` do modelo.
 
-Como foi esperado o método removeu a `citracid` do modelo.
-
-Confiança do modelo
+Confiança desse modelo é de:
 ```{r}
 confint(stepwise)
 ```
+
+Modelo sem a variável de `citricidade`:
+```{r}
+modeloSemCitricidade <- lm(train$quality ~ train$fixedacidity + train$volatileacidity + train$residualsugar + train$freesulfurdioxide + train$density + train$pH + train$sulphates + train$alcohol)
+
+summary(modeloSemCitricidade)  
+```
+O R-squared é de mais ou menos 30, o que significa que a regressão linear não descreve o modelo com tanta precisão.
+
+```{r}
+pred1 <- predict(modeloSemCitricidade, newdata = test)
+RMSE(pred = pred1, obs = test$quality)
+```
+
+O modelo criado através da técnica de regressão linear não descreve muito bem a nota de qualidade dos vinhos, com uma acertividade de aproximadamente 30%. Não será necessário fazer o modelo de predição, devido ao baixo índice de acertividade.
 
 ### Analise de resíduos
 
@@ -245,19 +283,18 @@ Foi observado uma leve melhora no modelo em comparacão com a média.
 
 ### Arvore de Regressão
 
-A seguir será executado a árvore de regressão para comparar com a regressão linear
+A seguir será executado a árvore de regressão para comparar com a regressão linear.
+A árvore de regressão é um método de aprendizado supervisionado utilizado para tarefas de classificação e regressão.
+A variável target é a quality e as variáveis que utilizaremos para prever o seu valor são: fixedacidity,  volatileacidity, citricacid, residualsugar, chlorides, freesulfurdioxide, totalsulfurdioxide, density,  pH,sulphates,alcohol.
+
+
 ```{r include=FALSE}
 attach(train)
 ```
 
 
 ```{r}
-arvore_regressao = rpart (quality ~ 
-                      alcohol+train$chlorides+
-                      +fixedacidity+
-                      freesulfurdioxide+pH+residualsugar+
-                      sulphates+
-                      totalsulfurdioxide+Vinho+volatileacidity,
+arvore_regressao = rpart (quality ~ fixedacidity + volatileacidity + citricacid + residualsugar + chlorides + freesulfurdioxide + totalsulfurdioxide + density + pH + sulphates + alcohol,
                       data=train, 
                       cp = 0.007,minsplit = 15, maxdepth=30)
 ```
@@ -292,7 +329,11 @@ Pode-se dizer que o modelo de árvore de regressão é mais acertivo que o model
 
 E para árvore de regressão pode-se dizer que a quantide de alcool é fundamental para a qualidade do vinho seguindo de ácido volátil.
 
-### Classificando em Bom ou Ruim
+###Arvore de regressao sem outliers
+
+#TODO
+
+### Classificando dos Vinhos em Bom ou Ruim considerando a variável Qualidade
 
 Adicionando a coluna de classificação dos vinhos
 
@@ -308,9 +349,7 @@ attach(train_log)
 Executando o modelo com todos as variáveis
 
 ```{r}
-modelo_logistico <- rpart (as.factor(classificacao) ~ fixedacidity+volatileacidity+citricacid+residualsugar+
-                          chlorides+freesulfurdioxide+totalsulfurdioxide+density+pH+sulphates+alcohol+
-                          Vinho, maxdepth=20, train_log)
+modelo_logistico <- rpart (as.factor(classificacao) ~ fixedacidity+volatileacidity+citricacid+residualsugar+chlorides+freesulfurdioxide+totalsulfurdioxide+density+pH+sulphates+alcohol, maxdepth=20, train_log)
 ```
 
 Resultado do modelo
@@ -347,11 +386,11 @@ Acc
 Executando o algoritmo para base de testes
 
 ```{r}
-previsto.valid<-predict(modelo_logistico, test_log , type='class')
+#previsto.valid<-predict(modelo_logistico, test_log , type='class')
 
-test$previsto=previsto.valid
-test$classificacao <- ifelse(test$quality >= 6, T, F)
-test$errou = ifelse(test$previsto != test$classificacao, 1, 0)
+#test$previsto=previsto.valid
+#test$classificacao <- ifelse(test$quality >= 6, T, F)
+#test$errou = ifelse(test$previsto != test$classificacao, 1, 0)
 
 ```
 
@@ -359,54 +398,68 @@ test$errou = ifelse(test$previsto != test$classificacao, 1, 0)
 Matriz de confusão para a base teste
 
 ```{r}
-previsto.com.modelo<-predict(modelo_logistico, test_log, type='class')
+#previsto.com.modelo<-predict(modelo_logistico, test_log, type='class')
 
-matriz.de.confusao<-table(test_log$classificacao, previsto.com.modelo)
-matriz.de.confusao
+#matriz.de.confusao<-table(test_log$classificacao, previsto.com.modelo)
+#matriz.de.confusao
 ```
 
 Calculando a diagonal da matriz
 
 ``` {r}
-diagonal <- diag(matriz.de.confusao)
-Acc <-  sum(diagonal)/sum(matriz.de.confusao)
-Acc
+#diagonal <- diag(matriz.de.confusao)
+#Acc <-  sum(diagonal)/sum(matriz.de.confusao)
+#Acc
 
 ```
 
 ### Clusterizando os Vinhos
 
+Como técnica não supervisionada, vamos testar se o algoritmo de clusterização será adequado para agrupar dois conjunto de vinhos, categorizando-os como vinhos bons e vinhos ruins.
+****A variável ‘quality’, que identifica a nota do vinho, será a variável utilizada para correlacionar com as demais variáveis para identificar se existe algum agrupamento entre os vinhos.
+
 De acordo com Luis Costa de Oliveira, Sara Oliveira, Maria Eugenia em seu artigo 'Avaliação das características físico-químicas e colorimétricas de
 vinhos finos de duas principais regiões vinícolas do Brasil ', a cor não é uma característica físico-química. 
-Portanto foram removidas as colunas de qualidade e tipo de vinho.
+***Portanto foram removidas as colunas de qualidade e tipo de vinho.
 
 ```{r}
 vinhos_noColor <- norm_vinhos[1:11]
+head(vinhos_noColor)
 ```
 
 Utilizando o K-means para descobrir a quantidade ideal de clusters dentro de 10 iterações.
 
 ```{r}
 wss = 0
-
+#lets to k-means for 10 clusters 
 for (i in 1:10) {
-  km.out <- kmeans(vinhos_noColor, centers = i)
+  wine_cluster <- kmeans(vinhos_noColor, centers = i)
   # Save total within sum of squares to wss variable
-  wss[i] <- km.out$tot.withinss
+  wss[i] <- wine_cluster$tot.withinss
 }
-
 # Plot total within sum of squares vs. number of clusters
-plot(1:10, wss, type = "b", 
+plot(1:10, wss, type = "b",  main="Elbow method",
      xlab = "Number of Clusters", 
-     ylab = "Within groups sum of squares")
+     ylab = "Within groups sum of squares",pch=8, col="red")
+```
 
-km <- kmeans(vinhos_noColor, 2, iter = 200)
+Com base na plotagem, podemos determinar que, após o cluster 3, não vemos uma grande queda na soma das distâncias quadradas dentro de cada cluster, portanto, podemos considerar o valor de K como 3 e prosseguir com o agrupamento
 
+### K-Means Segmentation
+```{r}
+k=3
+w_cluster = kmeans(vinhos_noColor,  centers = k, nstart=20)
+w_cluster
+```
+
+```{r}
+#table(w_cluster$cluster, Vinhos$color)
 ```
 
 
+
 ```{r}
-clus_teste <- tkmeans(vinhos_noColor , k = 2, alpha = 0.01)
+clus_teste <- tkmeans(vinhos_noColor , k = 3, alpha = 0.01)
 plot(clus_teste)
 ```
 
@@ -417,7 +470,7 @@ clusplot(vinhos_noColor, clus_teste$cluster, color=TRUE, shade=TRUE,
 ```
 
 TODO: testar a normalizacao apenas das colunas maiores que 1
-
+PCA?
 
 
 
