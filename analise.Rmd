@@ -34,7 +34,6 @@ cores = c(red_color, white_color)
 ```{r input, include=FALSE}
 Vinhos <- read.csv2("G:/fiap/vinhos/BaseWine_Red_e_White.csv", row.names=1)
 
-
 attach(Vinhos)
 ```
 
@@ -80,41 +79,6 @@ table(Vinho, quality)
 Outro aspecto relevante é que a quantidade de vinhos brancos é maior do que vinhos tintos.
 Apenas vinhos brancos possuem a nota máxima em relação a qualidade.
 
-###  Correlação
-Para realizar a correlação transformamos o campo `Vinho` (fator) para tipo numérico. Além de *normalizar* os dados para evitar algum tipo de distorção.
-
-```{r echo=TRUE}
-Vinhos$Vinho <- as.numeric(Vinhos$Vinho)
-norm_vinhos <- scale(Vinhos)
-```
-
-Todos os Vinhos
-```{r echo=FALSE}
-
-matcor = cor(norm_vinhos)
-ggcorrplot(matcor, hc.order = TRUE, 
-           type = "lower", 
-           lab = TRUE, 
-           lab_size = 3, 
-           method="circle", 
-           colors = c("tomato2", "white", "springgreen3"), 
-           title="Correlação dos Vinhos", 
-           ggtheme=theme_dark)
-```
-
-```{r echo=FALSE}
-corrgram(matcor, type = "cor", lower.panel = panel.shade, upper.panel = panel.pie)
-```
-
-
-Com o gráfico de correlação podemos observar que:
-
-- O `alcool` tem uma correlação negativa alta com qualidade `desinty`
-- O `freesulfurdioxide` tem uma correlação possitiva alta com`totalsulfurdioxide`
-
-As outras correlações não são significativas no dataset
-
-
 ###  Ánalise de outliers
 
 ```{r echo=FALSE}
@@ -157,6 +121,42 @@ VinhosOut = subset(VinhosOut, subset = !(VinhosOut$freesulfurdioxide %in% boxplo
 VinhosOut = subset(VinhosOut, subset = !(VinhosOut$totalsulfurdioxide %in% boxplot.stats(VinhosOut$totalsulfurdioxide)$out))
 
 ```
+
+###  Correlação
+Para realizar a correlação transformamos o campo `Vinho` (fator) para tipo numérico. Além de *normalizar* os dados para evitar algum tipo de distorção.
+
+```{r echo=TRUE}
+VinhosOut$Vinho <- as.numeric(VinhosOut$Vinho)
+#norm_vinhos <- scale(Vinhos)
+norm_vinhos <- VinhosOut %>%
+  mutate_at(c(1,2,3,4,5,6,7,8,9,10,11,13), funs(c(scale(.))))
+```
+
+Todos os Vinhos
+```{r echo=FALSE}
+
+matcor = cor(norm_vinhos)
+ggcorrplot(matcor, hc.order = TRUE, 
+           type = "lower", 
+           lab = TRUE, 
+           lab_size = 3, 
+           method="circle", 
+           colors = c("tomato2", "white", "springgreen3"), 
+           title="Correlação dos Vinhos", 
+           ggtheme=theme_dark)
+```
+
+```{r echo=FALSE}
+corrgram(matcor, type = "cor", lower.panel = panel.shade, upper.panel = panel.pie)
+```
+
+
+Com o gráfico de correlação podemos observar que:
+#TODO REVER ESSA AVALIACAO SEM OUTLIER
+- O `alcool` tem uma correlação negativa alta com qualidade `desinty`
+- O `freesulfurdioxide` tem uma correlação possitiva alta com`totalsulfurdioxide`
+
+As outras correlações não são significativas no dataset
 
 ## Explicando a variável quality
 
@@ -242,7 +242,7 @@ shapiro.test(residuals(modeloTestSemCitricidade))
 ```
 Como o p-value ficou menor que 5 pode-se dizer que temos um modelo de regressão com pouca assertividade.
 
-Isso corrobora com o valor d R-Quadrodo demonstrando que modelo não é assertivo.
+Isso corrobora com o valor d R-Quadrado demonstrando que modelo não é assertivo.
 
 ### Arvore de Regressão
 
@@ -288,11 +288,11 @@ erro_usando_media = mean((train$quality - mean(train$quality))^2)
 sqrt(erro_usando_media)
 ```
 
-Pode-se dizer que o modelo de árvore de regressão é mais acertivo que o modelo de regressão linear.
+Pode-se dizer que o modelo de árvore de regressão é mais acertivo que o modelo de regressão linear. E pode-se dizer que a árvore tem uma acertividade melhor que informando apenas a media como explicação da qualidade
 
 E para árvore de regressão pode-se dizer que a quantide de alcool é fundamental para a qualidade do vinho seguindo de ácido volátil.
 
-###Arvore de regressao sem outliers
+###Arvore de regressao com outliers
 
 #TODO
 
@@ -349,11 +349,11 @@ Acc
 Executando o algoritmo para base de testes
 
 ```{r}
-#previsto.valid<-predict(modelo_logistico, test_log , type='class')
+previsto.valid<-predict(modelo_logistico, test_log , type='class')
 
-#test$previsto=previsto.valid
-#test$classificacao <- ifelse(test$quality >= 6, T, F)
-#test$errou = ifelse(test$previsto != test$classificacao, 1, 0)
+test$previsto=previsto.valid
+test$classificacao <- ifelse(test$quality >= 6, T, F)
+test$errou = ifelse(test$previsto != test$classificacao, 1, 0)
 
 ```
 
@@ -361,18 +361,18 @@ Executando o algoritmo para base de testes
 Matriz de confusão para a base teste
 
 ```{r}
-#previsto.com.modelo<-predict(modelo_logistico, test_log, type='class')
+previsto.com.modelo<-predict(modelo_logistico, test_log, type='class')
 
-#matriz.de.confusao<-table(test_log$classificacao, previsto.com.modelo)
-#matriz.de.confusao
+matriz.de.confusao<-table(test_log$classificacao, previsto.com.modelo)
+matriz.de.confusao
 ```
 
 Calculando a diagonal da matriz
 
 ``` {r}
-#diagonal <- diag(matriz.de.confusao)
-#Acc <-  sum(diagonal)/sum(matriz.de.confusao)
-#Acc
+diagonal <- diag(matriz.de.confusao)
+Acc <-  sum(diagonal)/sum(matriz.de.confusao)
+Acc
 
 ```
 
@@ -387,8 +387,25 @@ vinhos finos de duas principais regiões vinícolas do Brasil ', a cor não é u
 
 ```{r}
 vinhos_noColor <- norm_vinhos[1:11]
-head(vinhos_noColor)
+kable(head(vinhos_noColor)) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
 ```
+
+### Método hierárquico
+
+```{r echo=TRUE}
+hier_cluster<-hclust(dist(vinhos_noColor),method='ward.D2')
+d <- dist(norm_vinhos, method = "euclidean") # distance matrix
+plot(hier_cluster, ylab='distancia', cex=0.6)
+
+groups <- cutree(hier_cluster, k=4) # cut tree into 5 clusters
+# draw dendogram with red borders around the 5 clusters
+rect.hclust(hier_cluster, k=4, border="red") 
+
+```
+
+
+### Método não hierárquico
 
 Utilizando o K-means para descobrir a quantidade ideal de clusters dentro de 10 iterações.
 
@@ -406,23 +423,42 @@ plot(1:10, wss, type = "b",  main="Elbow method",
      ylab = "Within groups sum of squares",pch=8, col="red")
 ```
 
-Com base na plotagem, podemos determinar que, após o cluster 3, não vemos uma grande queda na soma das distâncias quadradas dentro de cada cluster, portanto, podemos considerar o valor de K como 3 e prosseguir com o agrupamento
+Com base na plotagem, podemos determinar que, após o cluster 5, não vemos uma grande queda na soma das distâncias quadradas dentro de cada cluster, portanto, podemos considerar o valor de K como 5 e prosseguir com o agrupamento
 
 ### K-Means Segmentation
 ```{r}
-k=3
+k=5
 w_cluster = kmeans(vinhos_noColor,  centers = k, nstart=20)
 w_cluster
 ```
 
 ```{r}
-#table(w_cluster$cluster, Vinhos$color)
+# Faz sentido ter isso? Nao temos uma variavel pra agrupar bonito as outras propriedades
+#table(w_cluster$cluster, vinhos_noColor$color)
+
+segmento<-w_cluster$cluster
+table (segmento)
+```
+
+Foram utilizadas essa quantidade de interações
+```{r}
+# quantas rodadas até chegar nos clusters
+Qte_iter<-w_cluster$iter
+Qte_iter
+
 ```
 
 
+```{r}
+kable(head(aggregate(vinhos_noColor,by=list(segmento),FUN=mean))) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+Grupo 4 tem acido volatil e ph altos, 
+Grupo 2 são os vinhos com bastante residuos de açucar e menos alcolícos.
 
 ```{r}
-clus_teste <- tkmeans(vinhos_noColor , k = 3, alpha = 0.01)
+clus_teste <- tkmeans(vinhos_noColor , k = 5, alpha = 0.01)
 plot(clus_teste)
 ```
 
@@ -436,7 +472,7 @@ TODO: testar a normalizacao apenas das colunas maiores que 1
 PCA?
 
 
-
+#TODO Criar um consilidado das analíses
 
 
 
