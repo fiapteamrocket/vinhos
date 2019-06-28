@@ -428,6 +428,7 @@ Com base na plotagem, podemos determinar que, após o cluster 5, não vemos uma 
 
 ### K-Means Segmentation
 ```{r}
+set.seed(45)
 k=5
 w_cluster = kmeans(vinhos_noColor,  centers = k, nstart=20)
 w_cluster
