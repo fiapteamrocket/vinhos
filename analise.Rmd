@@ -410,6 +410,7 @@ rect.hclust(hier_cluster, k=4, border="red")
 Utilizando o K-means para descobrir a quantidade ideal de clusters dentro de 10 iterações.
 
 ```{r}
+set.seed(45)
 wss = 0
 #lets to k-means for 10 clusters 
 for (i in 1:10) {
@@ -469,8 +470,101 @@ clusplot(vinhos_noColor, clus_teste$cluster, color=TRUE, shade=TRUE,
 ```
 
 TODO: testar a normalizacao apenas das colunas maiores que 1
-PCA?
 
+# Componentes Principais
+
+Com a dataset sem cor foi testado o método dos Componentes Principais
+
+```{r}
+acpcor <- prcomp(vinhos_noColor, scale = TRUE) 
+summary(acpcor)
+```
+
+```{r}
+plot(1:ncol(vinhos_noColor), acpcor$sdev^2, type = "b", xlab = "Componente",
+     ylab = "Variância", pch = 20, cex.axis = 0.8, cex.lab = 0.8)
+```
+
+Pode-se observar que o número de componentes prinpais que explicam a maior parte dos é 5, por tanto, decidiu-se por utilizar 5 componentes
+
+### Exibição de cada componente
+```{r}
+
+par (mfrow=c(2,3))
+escore1 <- acpcor$x[, 1]
+hist(escore1)
+
+escore2 <- acpcor$x[, 2]
+hist(escore2)
+
+escore3 <- acpcor$x[, 3]
+hist(escore3)
+
+escore4 <- acpcor$x[, 4]
+hist(escore4)
+
+escore5 <- acpcor$x[, 5]
+hist(escore5)
+
+par (mfrow=c(1,1))
+```
+
+Criando um novo dataset com os componentes princpais
+```{r echo=TRUE}
+vinhos_cpa <-cbind(escore1,escore2, escore3,escore4 ,escore5)
+```
+
+
+### Utilizando o método hierárquico com PCA
+
+```{r}
+hier_cluster<-hclust(dist(vinhos_cpa),method='ward.D2')
+d <- dist(vinhos_cpa, method = "euclidean") # distance matrix
+plot(hier_cluster, ylab='distancia', cex=0.6)
+```
+
+Observando o dendograma podemos cortar em 3 grandes grupos
+
+```{r}
+hier_cluster<-hclust(dist(vinhos_cpa),method='ward.D2')
+d <- dist(vinhos_cpa, method = "euclidean") # distance matrix
+plot(hier_cluster, ylab='distancia', cex=0.6)
+
+groups <- cutree(hier_cluster, k=3) # cut tree into 5 clusters
+# draw dendogram with red borders around the 5 clusters
+rect.hclust(hier_cluster, k=3, border="blue") 
+```
+
+### Utilizando o método não hierárquico com PCA
+
+Determinando a quantidade de clusters
+
+```{r}
+set.seed(45)
+wss <- (nrow(vinhos_cpa )-1)*sum(apply(vinhos_cpa ,2,var))
+for (i in 2:15) wss[i] <- sum(kmeans(vinhos_cpa ,iter.max=100,
+                                     centers=i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares") 
+```
+
+Com base na plotagem, podemos determinar que, após o cluster 5, não vemos uma grande queda na soma das distâncias quadradas dentro de cada cluster, portanto, podemos considerar o valor de K como 5 e prosseguir com o agrupamento
+
+```{r echo=TRUE}
+set.seed(333)
+output_cluster<-kmeans(vinhos_cpa,5,iter=100)
+
+clus_vinhos_cpa<-output_cluster$cluster
+table (clus_vinhos_cpa)
+```
+
+Assim os vinhos ficam agrupados da seguinte maneira
+
+```{r}
+kable(head(aggregate(norm_vinhos,by=list(clus_vinhos_cpa),FUN=mean))) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+
+```
 
 #TODO Criar um consilidado das analíses
 
