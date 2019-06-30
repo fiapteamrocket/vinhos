@@ -5,8 +5,8 @@ date: "6/18/2019"
 output: html_document
 ---
 
-## Dataset: Qualidade de Vinhos
-Dataset realicionado com amostras de vinhos tintos e brancos do norte de Portugal.&nbsp;
+## Dataset: Qualidade dos Vinhos
+Dataset realicionado com amostras de vinhos tintos e brancos do norte de Portugal.  
 O objetivo é estimar a qualidade do vinho com base em suas características físico-químicas.
 
 ```{r setup, include=FALSE}
@@ -46,13 +46,13 @@ kable(head(Vinhos)) %>%
 ```
 
 ### Verifica se há valores ausentes (NAs)
-```{r}
+```{r echo=TRUE}
 sapply(Vinhos, function(x)all(is.na(x)))
 ```
 Observamos que não há nenhum valor ausente/faltante nesse dataset. Dessa forma, eliminamos a necessidade de tratar esses valores.
 
 ### Verifica se há preditores com variância próxima de zero
-```{r}
+```{r echo=TRUE}
 nearZeroVar(Vinhos)
 ```
 Não diagnosticamos preditores com um valor exclusivo (ou seja, preditores de variação zero) ou preditores com poucos valores exclusivos em relação ao número de amostras.
@@ -61,61 +61,79 @@ Não diagnosticamos preditores com um valor exclusivo (ou seja, preditores de va
 ```{r}
 str(Vinhos)
 ```
-O dataset possui 6497 observações de 13 variáveis.
-Dentre essas observações, podemos observar que a quantidade de vinhos brancos é maior do que vinhos tintos, conforme gráfico abaixo:
+O dataset possui 6497 observações de 13 variáveis. Sendo elas numéricas, inteiras e fatoriais.  
 
-```{r echo=FALSE}
+Dentre essas observações, podemos observar que a quantidade de `vinhos brancos` é **maior** do que `vinhos tintos`, conforme o gráfico abaixo:
+```{r echo=TRUE}
 barplot(table(Vinho), col=c(red_color, white_color))
 ```
 
+Executando o summary:  
 ```{r}
 summary(Vinhos)
 ```
-Observamos que as variáveis `residualsugar`, `freesulfurdioxide` e `totalsulfurdioxide` possuem valores muito distantes entre mínimo e máximo. Isso pode indicar outliers e/ou desequilíbrio entre a quantidade de vinhos tintos e brancos, o que pode interferir nos resultados de classificação.
+Observamos que as variáveis `residualsugar`, `chlorides`, `freesulfurdioxide` e `totalsulfurdioxide` possuem valores muito distantes entre mínimo e máximo. Isso pode indicar outliers e/ou desequilíbrio entre a quantidade de vinhos tintos e brancos, o que pode interferir nos resultados de classificação.  
 
+Nessa tabela podemos observar a combinação entre o tipo do vinho e a nota de qualidade:  
 ```{r echo=FALSE}
 table(Vinho, quality)
 ```
-Apenas vinhos brancos possuem a nota máxima em relação a qualidade.
-Tanto para vinhos tintos quanto brancos, as notas 5 e 6 concentram a maior parte dos vinhos.
+* Com esse output, notamos que apenas `vinhos brancos` possuem a nota máxima em relação a qualidade.  
+* Tanto para vinhos tintos quanto brancos, as notas 5 e 6 concentram a maior parte dos vinhos.
 
 ###  Histograma das variáveis
 
+* Simétrico  
+Contêm a partir do centro do gráfico o maior número de dados. 
 ```{r}
 p_fixedacidity <- plot_ly(x = fixedacidity, type="histogram", name = "Fixed Acidity")
-p_volatileacidity <- plot_ly(x = volatileacidity, type="histogram", name = "Volatile Acidity")
-p_citricacid <- plot_ly(x = citricacid, type="histogram", name = "Citric Acid")
+p_pH <- plot_ly(x = pH, type="histogram", name = "PH")
+subplot(p_fixedacidity, p_pH, nrows=1)
+```
+
+* Assimétrico à direita  
+Indica a ocorrência de altos valores com baixa frequência. 
+```{r}
 p_residualsugar <- plot_ly(x = residualsugar, type="histogram", name = "Residual Sugar")
 p_chlorides <- plot_ly(x = chlorides, type="histogram", name = "Chlorides")
+p_sulphates <- plot_ly(x = sulphates, type="histogram", name = "Sulphates")
+p_volatileacidity <- plot_ly(x = volatileacidity, type="histogram", name = "Volatile Acidity")
 p_freesulfurdioxide <- plot_ly(x = freesulfurdioxide, type="histogram", name = "Free Sulfur Dioxide")
-subplot(p_fixedacidity, p_volatileacidity, p_citricacid, p_residualsugar, p_chlorides, p_freesulfurdioxide, nrows=2)
+subplot(p_residualsugar, p_chlorides, p_sulphates,p_volatileacidity,p_freesulfurdioxide, nrows=2)
 ```
 
+* Assimétrico à esquerda  
+A frequência dos dados está concentrada nos altos valores. 
+```{r}
+p_alcohol <- plot_ly(x = alcohol, type="histogram", name = "Alcohol")
+subplot(p_alcohol, nrows=1)
+```
+
+* Bimodal  
+Há o aparecimento de dois picos.
 ```{r}
 p_totalsulfurdioxide <- plot_ly(x = totalsulfurdioxide, type="histogram", name = "Total Sulfur Dioxide")
+subplot(p_totalsulfurdioxide, nrows=1)
+```
+
+* Multimodal  
+Há o aparecimento de vários picos. 
+```{r}
+p_citricacid <- plot_ly(x = citricacid, type="histogram", name = "Citric Acid")
 p_density <- plot_ly(x = density, type="histogram", name = "Density")
-p_pH <- plot_ly(x = pH, type="histogram", name = "PH")
-p_sulphates <- plot_ly(x = sulphates, type="histogram", name = "Sulphates")
-p_alcohol <- plot_ly(x = alcohol, type="histogram", name = "Alcohol")
-p_quality <- plot_ly(x = quality, type="histogram", name = "Quality")
-subplot(p_totalsulfurdioxide, p_density, p_pH, p_sulphates, p_alcohol, p_quality, nrows=2)
+subplot(p_citricacid,p_density, nrows=1)
 ```
 
-### Verifica o balanceamento das variáveis
-```{r}
-library(e1071) 
-skewness(Vinhos$quality)
-histogram(Vinhos$quality)
-```
-
-```{r}
+### Encontrando as variáveis mais relevantes 
+```{r echo=TRUE}
 library(randomForest)
 rfModel = randomForest( Vinhos$quality ~ ., data=Vinhos, ntree=500 ) 
 varImpPlot(rfModel) 
 ```
 
-
 ###  Ánalise de outliers
+
+Abaixo temos o boxplot de todas as variáveis do dataset:  
 
 ```{r echo=FALSE}
 par (mfrow=c(1,3))
@@ -147,30 +165,22 @@ boxplot(alcohol ~ Vinho, main='alcohol',col=cores)
 boxplot(quality ~ Vinho, main='quality', col=cores)
 ```
 
-Com os gráficos acima pode-se observar que todas as variáveis possuem candidatos a outliers.
-No dataset existem variáveis como `residualsugar` que possui o valor máximo muito acima do terceiro quartil, isso pode gerar distorções nos algoritmos que será executado a seguir. Alem disso há uma concentração de outliears nessas variáriveis, o que traz a necessidade de remove-los para evitar distorção nos passos seguintes
+Com os gráficos acima foi observado que todas as variáveis possuem candidatos a outliers.  
+No dataset existem variáveis como `residualsugar` que possuem o valor máximo muito acima do terceiro quartil, isso pode gerar distorções nos algoritmos que serão executado a seguir. Além disso há uma concentração de outliers nessas variáriveis, o que traz a necessidade de removê-los para evitar distorção nos passos seguintes.  
 
-```{r}
-#VinhosOut = subset(Vinhos, subset = !(Vinhos$citricacid %in% boxplot.stats(Vinhos$citricacid)$out))
-#VinhosOut = subset(VinhosOut, subset = !(VinhosOut$residualsugar %in% boxplot.stats(VinhosOut$residualsugarsum)$out))
-#VinhosOut = subset(VinhosOut, subset = !(VinhosOut$freesulfurdioxide %in% boxplot.stats(VinhosOut$freesulfurdioxide)$out))
-#VinhosOut = subset(VinhosOut, subset = !(VinhosOut$totalsulfurdioxide %in% boxplot.stats(VinhosOut$totalsulfurdioxide)$out))
-
+Nivelamento  
+```{r echo=TRUE}
+VinhosOut <- Vinhos[Vinhos$quality > quantile(Vinhos$quality, .25) - 1.5*IQR(Vinhos$quality) & Vinhos$quality < quantile(Vinhos$quality, .75) + 1.5*IQR(Vinhos$quality), ]
 ```
-
-```{r}
-VinhosOut <- Vinhos[Vinhos$quality > quantile(Vinhos$quality, .25) - 1.5*IQR(Vinhos$quality) & Vinhos$quality < quantile(Vinhos$quality, .75) + 1.5*IQR(Vinhos$quality), ] #rows
-```
-
 
 ###  Correlação
 Para realizar a correlação transformamos o campo `Vinho` (fator) para tipo numérico. Além de *normalizar* os dados para evitar algum tipo de distorção.
 
 ```{r echo=TRUE}
 VinhosOut$Vinho <- as.numeric(VinhosOut$Vinho)
-norm_vinhos <- VinhosOut %>%
-  mutate_at(c(1,2,3,4,5,6,7,8,9,10,11,13), list( ~ c(scale(.))))
+norm_vinhos <- VinhosOut %>% mutate_at(c(1,2,3,4,5,6,7,8,9,10,11,13), list( ~ c(scale(.))))
 ```
+Obs.: Dataset sem outliers.
 
 ```{r echo=FALSE}
 
@@ -190,20 +200,19 @@ Outra forma de visualização da correlação das variáveis:
 corrgram(matcor, type = "cor", lower.panel = panel.shade, upper.panel = panel.pie)
 ```
 
-Com o gráfico de correlação podemos observar alguns pontos:
-- O `alcool` tem uma anti-correlação alta com `density`
-- O `freesulfurdioxide` tem uma correlação possitiva alta com`totalsulfurdioxide`
-- O `volatileacidity` tem uma anti-correlação alta com o tipo do `vinho`
-- O `totalsulfurdioxide` tem uma correlação possitiva alta com o tipo do `vinho`
+Com o gráfico de correlação podemos observar alguns pontos:  
+* O `alcool` tem uma anti-correlação alta com `density`  
+* O `freesulfurdioxide` tem uma correlação possitiva alta com`totalsulfurdioxide`  
+* O `volatileacidity` tem uma anti-correlação alta com o tipo do `vinho`  
+* O `totalsulfurdioxide` tem uma correlação possitiva alta com o tipo do `vinho`  
+* As outras correlações não são tão significativas no dataset, nesse momento.  
 
-As outras correlações não são tão significativas no dataset.
+## Explicando a variável Quality
 
-## Explicando a variável Qualidade
-
-### Preparação para separação de dados: treinamento e teste
+### Preparação para separação de dados: treinamento e teste  
 
 Iremos separar a base de dados em 25% para testes e 75% para treino. Conforme output abaixo:
-```{r}
+```{r echo=TRUE}
 norm_vinhos = data.frame(norm_vinhos)
 dt_list = split_df(norm_vinhos, ratio = 0.75, seed = 66)
 train = dt_list$train
@@ -218,7 +227,6 @@ prop.table(table(train$quality))
 ```{r}
 prop.table(table(test$quality))
 ```
-
 As proporções estão, consideravelemente, bem distribuídas entre a qualidade. Dessa forma, conseguimos realizar um bom treinamento para o modelo.
 
 ### Regressão Linear
@@ -236,17 +244,14 @@ summary(modelo1)
 
 ```
 
-Nesse primeiro modelo a variável `citracid` não possui muita relevância pois o seu p-value está próximo a 1.
+Nesse primeiro modelo a variável `citricacid` não possui muita relevância pois o seu p-value está próximo a 1.  
 Para ter certeza sobre essa informação, utilizamos o método `stepwise` para identificar quais são as variáveis relavantes para o modelo.
 
 ```{r}
-stepwise<-step(modelo1, direction="both")
-summary(stepwise)
-
+stepwise<-step(modelo1)
 ```
-Como esperado, o método removeu a `citracid` do modelo.
 
-Confiança desse modelo é de:
+Confiança desse modelo é:
 ```{r}
 confint(stepwise)
 ```
@@ -257,7 +262,7 @@ modeloSemCitricidade <- lm(train$quality ~ train$fixedacidity + train$volatileac
 
 summary(modeloSemCitricidade)  
 ```
-O R-squared é de mais ou menos 30, o que significa que a regressão linear não descreve o modelo com tanta precisão.
+O R-quadrado é de mais ou menos 30, o que significa que a regressão linear não descreve o modelo com tanta precisão.
 
 Abaixo o modelo para base testes:
 
@@ -269,27 +274,35 @@ summary(modeloTestSemCitricidade)
 
 O modelo criado através da técnica de regressão linear não descreve muito bem a nota de qualidade dos vinhos, com uma acertividade de aproximadamente 30%. Não será necessário fazer o modelo de predição, devido ao baixo índice de acertividade.
 
-### Analise de Resíduos
+### Análise de Resíduos
 
 ```{r echo=FALSE}
 par(mfrow=c(2,2))
 plot(modeloTestSemCitricidade)
 ```
+Esse gráfico de resíduos apresenta a distância entre o valor estimado x valor real. Então, quanto mais próximo de zero o ponto estiver melhor é a assertividade do modelo.
 
-Executando o teste de shapiro no modelo
+Executa a predição do modelo:
+```{r}
+erro_usando_media <- mean((test$quality - mean(test$quality))^2)
+sqrt(1-erro_usando_media)
+```
+O percentual de acerto do modelo é de 62,43%
+
+Executando o teste de shapiro no modelo:
 
 ```{r}
 shapiro.test(residuals(modeloTestSemCitricidade))
 ```
-Como o p-value ficou menor que 5 pode-se dizer que temos um modelo de regressão com pouca assertividade.
-
-Isso corrobora com o valor d R-Quadrado demonstrando que modelo não é assertivo.
+Como o p-value resultou em um valor menor que 0,05, não podemos assumir a normalidade.  
+Pode-se dizer que temos um modelo de regressão com pouca assertividade.  
+Isso corrobora com o valor d R-Quadrado demonstrando que **modelo não é assertivo**.
 
 ### Árvore de Regressão
 
-A seguir será executado a árvore de regressão para comparar com a regressão linear.
-A árvore de regressão é um método de aprendizado supervisionado utilizado para tarefas de classificação e regressão.
-A variável target é a quality e as variáveis que utilizaremos para prever o seu valor são: fixedacidity,  volatileacidity, citricacid, residualsugar, chlorides, freesulfurdioxide, totalsulfurdioxide, density,  pH,sulphates,alcohol.
+A seguir será executado a árvore de regressão para comparar com a regressão linear.  
+A árvore de regressão é um método de **aprendizado supervisionado** utilizado para classificação e regressão.  
+A variável target é a quality e as variáveis que utilizaremos para prever o seu valor são: `fixedacidity`,  `volatileacidity`, `citricacid`, `residualsugar`, `chlorides`, `freesulfurdioxide`, `totalsulfurdioxide`, `density`, `pH`,`sulphates`,`alcohol`.
 
 
 ```{r include=FALSE}
@@ -298,9 +311,7 @@ attach(train)
 
 
 ```{r echo=TRUE}
-arvore_regressao = rpart (quality ~ fixedacidity + volatileacidity + citricacid + residualsugar + chlorides + freesulfurdioxide + totalsulfurdioxide + density + pH + sulphates + alcohol,
-                      data=train, 
-                      cp = 0.007,minsplit = 15, maxdepth=30)
+arvore_regressao = rpart (quality ~ fixedacidity + volatileacidity + citricacid + residualsugar + chlorides + freesulfurdioxide + totalsulfurdioxide + density + pH + sulphates + alcohol,data=train, cp = 0.007, minsplit = 15, maxdepth=30)
 ```
 
 ```{r echo=TRUE}
@@ -310,12 +321,13 @@ rpart.plot(arvore_regressao, type=4, extra=1, under=FALSE, clip.right.labs=TRUE,
            compress=TRUE, 
            snip=FALSE)
 ```
+Para esse plot, conseguimos visualizr variáveis representativas como: `alcohol`, `volatileacidity`, `residualsugar`.  
 
 ### Testando a árvore de regressão
 
 Erro utilizando o modelo de árvore de regressão:
 
-```{r}
+```{r echo=TRUE}
 Val_pred_tree = predict(arvore_regressao,interval = "prediction", level = 0.95) 
 
 mse_tree = mean((quality - Val_pred_tree)^2)
@@ -324,20 +336,20 @@ sqrt(mse_tree)
 
 Erro utilizando média:
 
-```{r}
+```{r echo=TRUE}
 erro_usando_media = mean((train$quality - mean(train$quality))^2)
 sqrt(erro_usando_media)
 ```
 
 Pode-se dizer que o modelo de árvore de regressão é mais acertivo que o modelo de regressão linear. E pode-se dizer que a árvore tem uma acertividade melhor do que informando apenas a média como explicação da qualidade.
 
-E para árvore de regressão pode-se dizer que a quantide de alcool é fundamental para a qualidade do vinho seguindo de ácido volátil.
+E para **árvore de regressão** pode-se dizer que a quantide de `alcohol` é fundamental para a qualidade do vinho seguindo de `volatileacidity`.
 
-### Classificando Vinhos em Bom ou Ruim considerando a variável Qualidade
+### Classificando Vinhos em Bom ou Ruim considerando a variável Quality
 
 Adicionando a coluna de classificação dos vinhos e já separando base em teste/treino:
 
-```{r include=FALSE}
+```{r echo=TRUE}
 vinhos_com_classificacao = VinhosOut
 vinhos_com_classificacao$classificacao = ifelse(vinhos_com_classificacao$quality >= 6,  T, F)
 dt_list_log = split_df(vinhos_com_classificacao, ratio = 0.75, seed = 66)
@@ -348,7 +360,7 @@ attach(train_log)
 
 Executando o modelo com todos as variáveis:
 
-```{r}
+```{r echo=TRUE}
 modelo_logistico <- rpart (as.factor(classificacao) ~ fixedacidity+volatileacidity+citricacid+residualsugar+chlorides+freesulfurdioxide+totalsulfurdioxide+density+pH+sulphates+alcohol, maxdepth=20, train_log)
 ```
 
@@ -367,7 +379,7 @@ rpart.plot(modelo_logistico, type=5, extra=104, under=FALSE, clip.right.labs=TRU
 
 #### Matriz de confusão
 
-```{r}
+```{r echo=TRUE}
 previsto.com.modelo<-predict(modelo_logistico, train_log, type='class')
 
 matriz.de.confusao<-table(train_log$classificacao, previsto.com.modelo)
@@ -376,7 +388,7 @@ matriz.de.confusao
 
 Calculando a diagonal da matriz
 
-``` {r}
+```{undefined echo=TRUE}
 diagonal <- diag(matriz.de.confusao)
 Acc <-  sum(diagonal)/sum(matriz.de.confusao)
 Acc
@@ -385,7 +397,7 @@ Acc
 
 ### Executando o algoritmo para base de testes
 
-```{r}
+```{r echo=TRUE}
 previsto.valid<-predict(modelo_logistico, test_log , type='class')
 
 test$previsto=previsto.valid
@@ -396,7 +408,7 @@ test$errou = ifelse(test$previsto != test$classificacao, 1, 0)
 
 Matriz de confusão para a base teste
 
-```{r}
+```{r echo=TRUE}
 previsto.com.modelo<-predict(modelo_logistico, test_log, type='class')
 
 matriz.de.confusao<-table(test_log$classificacao, previsto.com.modelo)
@@ -405,7 +417,7 @@ matriz.de.confusao
 
 Calculando a diagonal da matriz
 
-``` {r}
+```{undefined echo=TRUE}
 diagonal <- diag(matriz.de.confusao)
 Acc <-  sum(diagonal)/sum(matriz.de.confusao)
 Acc
@@ -414,9 +426,9 @@ Acc
 
 ### Clusterizando os Vinhos
 
-Como técnica não supervisionada, vamos testar se o algoritmo de clusterização será adequado para agrupar dois conjunto de vinhos, categorizando-os como vinhos bons e vinhos ruins. 
+Como **técnica não supervisionada**, vamos testar se o algoritmo de clusterização será adequado para agrupar dois conjunto de vinhos, categorizando-os como vinhos bons e vinhos ruins. 
 
-A variável ‘quality’, que identifica a nota do vinho, será a variável utilizada para correlacionar com as demais variáveis para identificar se existe algum agrupamento entre os vinhos.
+A variável `quality`, que identifica a nota do vinho, será a variável utilizada para correlacionar com as demais variáveis para identificar se existe algum agrupamento entre os vinhos.
 
 De acordo com Luis Costa de Oliveira, Sara Oliveira, Maria Eugenia em seu artigo 'Avaliação das características físico-químicas e colorimétricas de
 vinhos finos', a cor não é uma característica físico-química. Portanto foi removida a coluna tipo de vinho.
@@ -431,36 +443,31 @@ kable(head(vinhos_noColor)) %>%
 
 ```{r echo=TRUE}
 hier_cluster<-hclust(dist(vinhos_noColor),method='ward.D2')
-d <- dist(norm_vinhos, method = "euclidean") # distance matrix
+d <- dist(norm_vinhos, method = "euclidean") 
 plot(hier_cluster, ylab='distancia', cex=0.6)
 
-groups <- cutree(hier_cluster, k=4) # cut tree into 5 clusters
-# draw dendogram with red borders around the 5 clusters
+groups <- cutree(hier_cluster, k=4)
 rect.hclust(hier_cluster, k=4, border="red") 
-
 ```
-
+* Divisão por 4 clusters.
 
 ### Método não hierárquico
 
 Utilizando o K-means para descobrir a quantidade ideal de clusters dentro de 10 iterações.
 
-```{r}
+```{r echo=TRUE}
 set.seed(45)
 wss = 0
-#lets to k-means for 10 clusters 
 for (i in 1:10) {
   wine_cluster <- kmeans(vinhos_noColor, centers = i)
-  # Save total within sum of squares to wss variable
   wss[i] <- wine_cluster$tot.withinss
 }
-# Plot total within sum of squares vs. number of clusters
 plot(1:10, wss, type = "b",  main="Elbow method",
      xlab = "Number of Clusters", 
      ylab = "Within groups sum of squares",pch=8, col="red")
 ```
 
-Com base na plotagem, podemos determinar que, após o cluster 3, não vemos uma grande queda na soma das distâncias quadradas dentro de cada cluster, portanto, podemos considerar o valor de K como 3 e prosseguir com o agrupamento
+Com base na plotagem, podemos determinar que, após o cluster 3, não vemos uma grande queda na soma das distâncias quadradas dentro de cada cluster, portanto, podemos considerar o valor de K como 3 e prosseguir com o agrupamento.
 
 ### K-Means Segmentation
 ```{r}
@@ -471,21 +478,15 @@ w_cluster
 ```
 
 ```{r}
-# Faz sentido ter isso? Nao temos uma variavel pra agrupar bonito as outras propriedades
-#table(w_cluster$cluster, vinhos_noColor$color)
-
 segmento<-w_cluster$cluster
 table (segmento)
 ```
 
-Foram utilizadas essa quantidade de interações
+Quantidade de interações até chegar nos clusters:
 ```{r}
-# quantas rodadas até chegar nos clusters
 Qte_iter<-w_cluster$iter
 Qte_iter
-
 ```
-
 
 ```{r}
 kable(head(aggregate(vinhos_noColor,by=list(segmento),FUN=mean))) %>%
@@ -506,13 +507,11 @@ clusplot(vinhos_noColor, clus_teste$cluster, color=TRUE, shade=TRUE,
          labels=2, lines=0 , cex=0.75)
 ```
 
-TODO: testar a normalizacao apenas das colunas maiores que 1
+# Componentes Principais (PCA)
 
-# Componentes Principais
+Com a dataset sem o tipo do vinho foi testado o método dos Componentes Principais:
 
-Com a dataset sem cor foi testado o método dos Componentes Principais
-
-```{r}
+```{r echo=TRUE}
 acpcor <- prcomp(vinhos_noColor, scale = TRUE) 
 summary(acpcor)
 ```
@@ -522,7 +521,7 @@ plot(1:ncol(vinhos_noColor), acpcor$sdev^2, type = "b", xlab = "Componente",
      ylab = "Variância", pch = 20, cex.axis = 0.8, cex.lab = 0.8)
 ```
 
-Pode-se observar que o número de componentes prinpais que explicam a maior parte dos é 3, por tanto, decidiu-se por utilizar 3 componentes.
+Pode-se observar que o número de componentes prinpais que explicam a maior parte dos componentes é 3, por tanto, decidiu-se por utilizar 3 componentes.
 
 ### Exibição de cada componente
 ```{r}
@@ -560,7 +559,8 @@ d <- dist(vinhos_cpa, method = "euclidean") # distance matrix
 plot(hier_cluster, ylab='distancia', cex=0.6)
 ```
 
-Observando o dendograma podemos cortar em 3 grandes grupos
+
+* Observando o dendograma podemos cortar em 3 grandes grupos:
 
 ```{r}
 hier_cluster<-hclust(dist(vinhos_cpa),method='ward.D2')
@@ -585,7 +585,7 @@ plot(1:15, wss, type="b", xlab="Number of Clusters",
      ylab="Within groups sum of squares") 
 ```
 
-Com base na plotagem, podemos determinar que, após o cluster 3, não vemos uma grande queda na soma das distâncias quadradas dentro de cada cluster, portanto, podemos considerar o valor de K como 3 e prosseguir com o agrupamento
+Com base na plotagem, podemos determinar que, após o cluster 3, não vemos uma grande queda na soma das distâncias quadradas dentro de cada cluster, portanto, podemos considerar o valor de K como 3 e prosseguir com o agrupamento.
 
 ```{r echo=TRUE}
 set.seed(333)
@@ -603,7 +603,6 @@ kable(head(aggregate(norm_vinhos,by=list(clus_vinhos_cpa),FUN=mean))) %>%
 
 ```
 
-#TODO Criar um consilidado das analíses
 
 
 
