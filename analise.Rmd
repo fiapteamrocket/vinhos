@@ -493,9 +493,6 @@ kable(head(aggregate(vinhos_noColor,by=list(segmento),FUN=mean))) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
-Grupo 4 tem acido volatil e ph altos, 
-Grupo 2 são os vinhos com bastante residuos de açucar e menos alcolícos.
-
 ```{r}
 clus_teste <- tkmeans(vinhos_noColor , k = 3, alpha = 0.01)
 plot(clus_teste)
